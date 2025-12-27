@@ -27,4 +27,5 @@ CLAUDE.md
 # Debug/test files
 debug_*.html
 test_api.py
+probe_endpoints.py
 *.log
