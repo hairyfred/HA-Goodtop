@@ -6,6 +6,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 
 from .const import DOMAIN
 from .coordinator import GoodtopApiClient, GoodtopCoordinator
@@ -33,6 +34,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: GoodtopConfigEntry) -> b
     await coordinator.async_config_entry_first_refresh()
 
     entry.runtime_data = coordinator
+
+    # Register the main switch device first so sub-devices can reference it
+    device_registry = dr.async_get(hass)
+    data = coordinator.data
+    device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, data.mac_address)},
+        name=f"Goodtop {data.model}" if data.model else "Goodtop Switch",
+        manufacturer="Goodtop",
+        model=data.model,
+        sw_version=data.firmware_version,
+        hw_version=data.hardware_version,
+    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
