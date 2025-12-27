@@ -2,6 +2,10 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
+> **WARNING: AI Slop Coded**
+>
+> This integration was AI slop coded. While it has been tested, **do not use this in mission-critical situations**. Use at your own risk. The code may contain bugs, security issues, or unexpected behavior.
+
 Control and monitor Goodtop network switches from Home Assistant.
 
 ## Features
