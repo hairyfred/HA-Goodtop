@@ -31,6 +31,7 @@ class PortData:
     poe_enabled: bool = False
     speed_duplex: str = "0"  # 0=auto, 1=10HD, 2=10FD, 3=100HD, 4=100FD, 5=1000FD
     flow_control: str = "0"  # 0=disabled, 1=enabled
+    connected_macs: list = field(default_factory=list)  # List of connected MAC addresses
 
 
 @dataclass
@@ -117,6 +118,8 @@ class GoodtopApiClient:
             await self._fetch_port_settings(session, data)
             # Get PoE port states
             await self._fetch_poe_ports(session, data)
+            # Get MAC address table
+            await self._fetch_mac_table(session, data)
 
         return data
 
@@ -251,6 +254,38 @@ class GoodtopApiClient:
                             data.ports[port_id].poe_enabled = False
         except Exception as err:
             _LOGGER.debug("Error fetching PoE ports: %s", err)
+
+    async def _fetch_mac_table(
+        self, session: aiohttp.ClientSession, data: GoodtopData
+    ) -> None:
+        """Fetch MAC address table and associate with ports."""
+        try:
+            # Need to login first to access this page
+            await self._login(session)
+            async with session.get(
+                f"{self.host}/mac.cgi?page=fwd_tbl",
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as response:
+                if response.status == 200:
+                    html = await response.text()
+                    # Parse MAC table rows:
+                    # <tr><td>1</td><td>00:E2:69:73:71:3A</td><td>1000</td><td>dynamic</td><td>8</td></tr>
+                    pattern = (
+                        r"<tr>\s*<td\s*>(\d+)</td>\s*"
+                        r"<td\s*>([0-9A-Fa-f:]+)</td>\s*"
+                        r"<td\s*>(\d+)</td>\s*"
+                        r"<td\s*>(\w+)</td>\s*"
+                        r"<td\s*>(\d+)</td>\s*</tr>"
+                    )
+                    for match in re.finditer(pattern, html):
+                        mac_address = match.group(2).upper()
+                        port_num = int(match.group(5))
+                        # Add MAC to the port's list if port exists
+                        if port_num in data.ports:
+                            if mac_address not in data.ports[port_num].connected_macs:
+                                data.ports[port_num].connected_macs.append(mac_address)
+        except Exception as err:
+            _LOGGER.debug("Error fetching MAC table: %s", err)
 
     def _extract_value(self, html: str, label: str) -> str:
         """Extract value from HTML table row."""

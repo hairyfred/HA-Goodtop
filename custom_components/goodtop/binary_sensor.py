@@ -73,9 +73,16 @@ class GoodtopPortLinkSensor(CoordinatorEntity[GoodtopCoordinator], BinarySensorE
         return False
 
     @property
-    def extra_state_attributes(self) -> dict[str, str]:
+    def extra_state_attributes(self) -> dict[str, any]:
         """Return additional attributes."""
         port = self.coordinator.data.ports.get(self._port_id)
         if port:
-            return {"link_speed": port.link}
+            attrs = {
+                "link_speed": port.link,
+                "connected_devices": len(port.connected_macs),
+            }
+            # Add connected MAC addresses
+            if port.connected_macs:
+                attrs["connected_macs"] = port.connected_macs
+            return attrs
         return {}
