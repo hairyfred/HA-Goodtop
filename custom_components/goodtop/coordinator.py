@@ -283,15 +283,16 @@ class GoodtopApiClient:
             async with aiohttp.ClientSession(cookies={"admin": self._cookie}) as session:
                 # Login first to establish session
                 await self._login(session)
-                # Match PowerShell format exactly
+                # Switch uses 0-indexed port IDs (Port 1 = 0, Port 2 = 1, etc.)
+                switch_port_id = port_id - 1
                 data = {
-                    "portid": str(port_id),
+                    "portid": str(switch_port_id),
                     "state": "1" if enabled else "0",
                     "submit": "apply",
                     "cmd": "poe",
                     "language": "EN",
                 }
-                _LOGGER.warning("set_poe request: port=%d, state=%s, data=%s", port_id, enabled, data)
+                _LOGGER.warning("set_poe request: port=%d (switch_id=%d), state=%s, data=%s", port_id, switch_port_id, enabled, data)
                 async with session.post(
                     f"{self.host}/pse_port.cgi",
                     data=data,
@@ -319,16 +320,17 @@ class GoodtopApiClient:
             async with aiohttp.ClientSession(cookies={"admin": self._cookie}) as session:
                 # Login first to establish session
                 await self._login(session)
-                # Match PowerShell format - no language field for port
+                # Switch uses 0-indexed port IDs (Port 1 = 0, Port 2 = 1, etc.)
+                switch_port_id = port_id - 1
                 data = {
-                    "portid": str(port_id),
+                    "portid": str(switch_port_id),
                     "state": "1" if enabled else "0",
                     "speed_duplex": speed_duplex,
                     "flow": flow_control,
                     "submit": "+++Apply+++",
                     "cmd": "port",
                 }
-                _LOGGER.warning("set_port_state request: port=%d, data=%s", port_id, data)
+                _LOGGER.warning("set_port_state request: port=%d (switch_id=%d), data=%s", port_id, switch_port_id, data)
                 async with session.post(
                     f"{self.host}/port.cgi",
                     data=data,
