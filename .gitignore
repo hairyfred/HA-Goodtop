@@ -23,3 +23,7 @@ credentials.json
 
 # Claude Code context (local only)
 CLAUDE.md
+
+# Debug/test files
+debug_*.html
+test_api.py
