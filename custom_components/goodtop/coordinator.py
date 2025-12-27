@@ -70,14 +70,16 @@ class GoodtopApiClient:
                 "language": "EN",
                 "Response": self._cookie,
             }
+            _LOGGER.warning("Logging in to %s", self.host)
             async with session.post(
                 f"{self.host}/login.cgi",
                 data=login_data,
                 timeout=aiohttp.ClientTimeout(total=10),
             ) as response:
+                _LOGGER.warning("Login response: %s", response.status)
                 return response.status == 200
         except Exception as err:
-            _LOGGER.debug("Login error: %s", err)
+            _LOGGER.error("Login error: %s", err)
             return False
 
     async def test_connection(self) -> bool:
@@ -231,14 +233,14 @@ class GoodtopApiClient:
                     "cmd": "poe",
                     "language": "EN",
                 }
-                _LOGGER.debug("set_poe request: port=%d, state=%s", port_id, enabled)
+                _LOGGER.warning("set_poe request: port=%d, state=%s", port_id, enabled)
                 async with session.post(
                     f"{self.host}/pse_port.cgi",
                     data=data,
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
                     text = await response.text()
-                    _LOGGER.debug("set_poe response: %s, body=%s", response.status, text[:200])
+                    _LOGGER.warning("set_poe response: %s, body=%s", response.status, text[:500])
                     return response.status == 200
         except Exception as err:
             _LOGGER.error("Error setting PoE for port %d: %s", port_id, err)
@@ -257,14 +259,14 @@ class GoodtopApiClient:
                     "cmd": "port",
                     "language": "EN",
                 }
-                _LOGGER.debug("set_port_state request: port=%d, state=%s", port_id, enabled)
+                _LOGGER.warning("set_port_state request: port=%d, state=%s", port_id, enabled)
                 async with session.post(
                     f"{self.host}/port.cgi",
                     data=data,
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
                     text = await response.text()
-                    _LOGGER.debug("set_port_state response: %s, body=%s", response.status, text[:200])
+                    _LOGGER.warning("set_port_state response: %s, body=%s", response.status, text[:500])
                     return response.status == 200
         except Exception as err:
             _LOGGER.error("Error setting port %d state: %s", port_id, err)
