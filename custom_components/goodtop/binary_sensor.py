@@ -48,19 +48,18 @@ class GoodtopPortLinkSensor(CoordinatorEntity[GoodtopCoordinator], BinarySensorE
         self._port_id = port_id
         self._entry = entry
         self._attr_unique_id = f"{coordinator.data.mac_address}_port{port_id}_link"
-        self._attr_name = f"Port {port_id} Link"
+        self._attr_name = "Link"
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device information."""
+        """Return device information for port sub-device."""
         data = self.coordinator.data
         return DeviceInfo(
-            identifiers={(DOMAIN, data.mac_address)},
-            name=f"Goodtop {data.model}" if data.model else "Goodtop Switch",
+            identifiers={(DOMAIN, f"{data.mac_address}_port{self._port_id}")},
+            name=f"Port {self._port_id}",
             manufacturer="Goodtop",
             model=data.model,
-            sw_version=data.firmware_version,
-            hw_version=data.hardware_version,
+            via_device=(DOMAIN, data.mac_address),
         )
 
     @property

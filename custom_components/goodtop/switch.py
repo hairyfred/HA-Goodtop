@@ -52,15 +52,14 @@ class GoodtopSwitchBase(CoordinatorEntity[GoodtopCoordinator], SwitchEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Return device information."""
+        """Return device information for port sub-device."""
         data = self.coordinator.data
         return DeviceInfo(
-            identifiers={(DOMAIN, data.mac_address)},
-            name=f"Goodtop {data.model}" if data.model else "Goodtop Switch",
+            identifiers={(DOMAIN, f"{data.mac_address}_port{self._port_id}")},
+            name=f"Port {self._port_id}",
             manufacturer="Goodtop",
             model=data.model,
-            sw_version=data.firmware_version,
-            hw_version=data.hardware_version,
+            via_device=(DOMAIN, data.mac_address),
         )
 
 
@@ -76,7 +75,7 @@ class GoodtopPoeSwitch(GoodtopSwitchBase):
         """Initialize the PoE switch."""
         super().__init__(coordinator, entry, port_id)
         self._attr_unique_id = f"{coordinator.data.mac_address}_port{port_id}_poe"
-        self._attr_name = f"Port {port_id} PoE"
+        self._attr_name = "PoE"
         self._attr_icon = "mdi:ethernet"
 
     @property
@@ -108,7 +107,7 @@ class GoodtopPortSwitch(GoodtopSwitchBase):
         """Initialize the port switch."""
         super().__init__(coordinator, entry, port_id)
         self._attr_unique_id = f"{coordinator.data.mac_address}_port{port_id}_enable"
-        self._attr_name = f"Port {port_id}"
+        self._attr_name = "Enabled"
         self._attr_icon = "mdi:ethernet-cable"
 
     @property

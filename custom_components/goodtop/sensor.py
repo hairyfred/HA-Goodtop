@@ -108,6 +108,18 @@ class GoodtopPortSensorBase(GoodtopSensorBase):
         super().__init__(coordinator, entry)
         self._port_id = port_id
 
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information for port sub-device."""
+        data = self.coordinator.data
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{data.mac_address}_port{self._port_id}")},
+            name=f"Port {self._port_id}",
+            manufacturer="Goodtop",
+            model=data.model,
+            via_device=(DOMAIN, data.mac_address),
+        )
+
 
 class GoodtopPortTxGoodSensor(GoodtopPortSensorBase):
     """Sensor for port TX good packets."""
@@ -123,7 +135,7 @@ class GoodtopPortTxGoodSensor(GoodtopPortSensorBase):
         """Initialize the TX good sensor."""
         super().__init__(coordinator, entry, port_id)
         self._attr_unique_id = f"{coordinator.data.mac_address}_port{port_id}_tx_good"
-        self._attr_name = f"Port {port_id} TX Good"
+        self._attr_name = "TX Good"
 
     @property
     def native_value(self) -> int:
@@ -146,7 +158,7 @@ class GoodtopPortTxBadSensor(GoodtopPortSensorBase):
         """Initialize the TX bad sensor."""
         super().__init__(coordinator, entry, port_id)
         self._attr_unique_id = f"{coordinator.data.mac_address}_port{port_id}_tx_bad"
-        self._attr_name = f"Port {port_id} TX Bad"
+        self._attr_name = "TX Bad"
 
     @property
     def native_value(self) -> int:
@@ -169,7 +181,7 @@ class GoodtopPortRxGoodSensor(GoodtopPortSensorBase):
         """Initialize the RX good sensor."""
         super().__init__(coordinator, entry, port_id)
         self._attr_unique_id = f"{coordinator.data.mac_address}_port{port_id}_rx_good"
-        self._attr_name = f"Port {port_id} RX Good"
+        self._attr_name = "RX Good"
 
     @property
     def native_value(self) -> int:
@@ -192,7 +204,7 @@ class GoodtopPortRxBadSensor(GoodtopPortSensorBase):
         """Initialize the RX bad sensor."""
         super().__init__(coordinator, entry, port_id)
         self._attr_unique_id = f"{coordinator.data.mac_address}_port{port_id}_rx_bad"
-        self._attr_name = f"Port {port_id} RX Bad"
+        self._attr_name = "RX Bad"
 
     @property
     def native_value(self) -> int:
