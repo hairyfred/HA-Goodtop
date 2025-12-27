@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Goodtop Switch",
+        "description": "Enter the connection details for your Goodtop network switch.",
+        "data": {
+          "host": "Host",
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to switch. Check host, username, and password."
+    },
+    "abort": {
+      "already_configured": "This switch is already configured."
+    }
+  }
+}
