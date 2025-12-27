@@ -258,20 +258,40 @@ class GoodtopApiClient:
         match = re.search(pattern, html, re.IGNORECASE)
         return match.group(1).strip() if match else ""
 
+    async def _save_settings(self, session: aiohttp.ClientSession) -> bool:
+        """Save settings to persist changes."""
+        try:
+            data = {
+                "language": "EN",
+                "cmd": "save",
+            }
+            _LOGGER.warning("Saving settings...")
+            async with session.post(
+                f"{self.host}/save.cgi",
+                data=data,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as response:
+                _LOGGER.warning("save_settings response: %s", response.status)
+                return response.status == 200
+        except Exception as err:
+            _LOGGER.error("Error saving settings: %s", err)
+            return False
+
     async def set_poe(self, port_id: int, enabled: bool) -> bool:
         """Set PoE state for a port."""
         try:
             async with aiohttp.ClientSession(cookies={"admin": self._cookie}) as session:
                 # Login first to establish session
                 await self._login(session)
+                # Match PowerShell format exactly
                 data = {
                     "portid": str(port_id),
                     "state": "1" if enabled else "0",
-                    "submit": "Apply",
+                    "submit": "apply",
                     "cmd": "poe",
                     "language": "EN",
                 }
-                _LOGGER.warning("set_poe request: port=%d, state=%s", port_id, enabled)
+                _LOGGER.warning("set_poe request: port=%d, state=%s, data=%s", port_id, enabled, data)
                 async with session.post(
                     f"{self.host}/pse_port.cgi",
                     data=data,
@@ -279,7 +299,10 @@ class GoodtopApiClient:
                 ) as response:
                     text = await response.text()
                     _LOGGER.warning("set_poe response: %s, body=%s", response.status, text[:500])
-                    return response.status == 200
+                    if response.status == 200:
+                        await self._save_settings(session)
+                        return True
+                    return False
         except Exception as err:
             _LOGGER.error("Error setting PoE for port %d: %s", port_id, err)
             return False
@@ -296,6 +319,7 @@ class GoodtopApiClient:
             async with aiohttp.ClientSession(cookies={"admin": self._cookie}) as session:
                 # Login first to establish session
                 await self._login(session)
+                # Match PowerShell format - no language field for port
                 data = {
                     "portid": str(port_id),
                     "state": "1" if enabled else "0",
@@ -303,7 +327,6 @@ class GoodtopApiClient:
                     "flow": flow_control,
                     "submit": "+++Apply+++",
                     "cmd": "port",
-                    "language": "EN",
                 }
                 _LOGGER.warning("set_port_state request: port=%d, data=%s", port_id, data)
                 async with session.post(
@@ -313,7 +336,10 @@ class GoodtopApiClient:
                 ) as response:
                     text = await response.text()
                     _LOGGER.warning("set_port_state response: %s, body=%s", response.status, text[:500])
-                    return response.status == 200
+                    if response.status == 200:
+                        await self._save_settings(session)
+                        return True
+                    return False
         except Exception as err:
             _LOGGER.error("Error setting port %d state: %s", port_id, err)
             return False
