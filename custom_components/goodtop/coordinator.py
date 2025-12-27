@@ -229,13 +229,16 @@ class GoodtopApiClient:
                     "state": "1" if enabled else "0",
                     "submit": "Apply",
                     "cmd": "poe",
+                    "language": "EN",
                 }
+                _LOGGER.debug("set_poe request: port=%d, state=%s", port_id, enabled)
                 async with session.post(
                     f"{self.host}/pse_port.cgi",
                     data=data,
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
-                    _LOGGER.debug("set_poe response: %s", response.status)
+                    text = await response.text()
+                    _LOGGER.debug("set_poe response: %s, body=%s", response.status, text[:200])
                     return response.status == 200
         except Exception as err:
             _LOGGER.error("Error setting PoE for port %d: %s", port_id, err)
@@ -252,13 +255,16 @@ class GoodtopApiClient:
                     "state": "1" if enabled else "0",
                     "submit": "+++Apply+++",
                     "cmd": "port",
+                    "language": "EN",
                 }
+                _LOGGER.debug("set_port_state request: port=%d, state=%s", port_id, enabled)
                 async with session.post(
                     f"{self.host}/port.cgi",
                     data=data,
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
-                    _LOGGER.debug("set_port_state response: %s", response.status)
+                    text = await response.text()
+                    _LOGGER.debug("set_port_state response: %s, body=%s", response.status, text[:200])
                     return response.status == 200
         except Exception as err:
             _LOGGER.error("Error setting port %d state: %s", port_id, err)
