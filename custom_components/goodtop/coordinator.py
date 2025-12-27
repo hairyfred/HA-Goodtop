@@ -61,6 +61,25 @@ class GoodtopApiClient:
         login_combo = f"{self.username}{self.password}"
         return hashlib.md5(login_combo.encode()).hexdigest()
 
+    async def _login(self, session: aiohttp.ClientSession) -> bool:
+        """Perform login to establish session."""
+        try:
+            login_data = {
+                "username": self.username,
+                "password": self.password,
+                "language": "EN",
+                "Response": self._cookie,
+            }
+            async with session.post(
+                f"{self.host}/login.cgi",
+                data=login_data,
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as response:
+                return response.status == 200
+        except Exception as err:
+            _LOGGER.debug("Login error: %s", err)
+            return False
+
     async def test_connection(self) -> bool:
         """Test connection to the switch."""
         try:
@@ -202,8 +221,9 @@ class GoodtopApiClient:
     async def set_poe(self, port_id: int, enabled: bool) -> bool:
         """Set PoE state for a port."""
         try:
-            async with aiohttp.ClientSession() as session:
-                cookies = {"admin": self._cookie}
+            async with aiohttp.ClientSession(cookies={"admin": self._cookie}) as session:
+                # Login first to establish session
+                await self._login(session)
                 data = {
                     "portid": str(port_id),
                     "state": "1" if enabled else "0",
@@ -212,10 +232,10 @@ class GoodtopApiClient:
                 }
                 async with session.post(
                     f"{self.host}/pse_port.cgi",
-                    cookies=cookies,
                     data=data,
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
+                    _LOGGER.debug("set_poe response: %s", response.status)
                     return response.status == 200
         except Exception as err:
             _LOGGER.error("Error setting PoE for port %d: %s", port_id, err)
@@ -224,8 +244,9 @@ class GoodtopApiClient:
     async def set_port_state(self, port_id: int, enabled: bool) -> bool:
         """Set port enable/disable state."""
         try:
-            async with aiohttp.ClientSession() as session:
-                cookies = {"admin": self._cookie}
+            async with aiohttp.ClientSession(cookies={"admin": self._cookie}) as session:
+                # Login first to establish session
+                await self._login(session)
                 data = {
                     "portid": str(port_id),
                     "state": "1" if enabled else "0",
@@ -234,10 +255,10 @@ class GoodtopApiClient:
                 }
                 async with session.post(
                     f"{self.host}/port.cgi",
-                    cookies=cookies,
                     data=data,
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
+                    _LOGGER.debug("set_port_state response: %s", response.status)
                     return response.status == 200
         except Exception as err:
             _LOGGER.error("Error setting port %d state: %s", port_id, err)
