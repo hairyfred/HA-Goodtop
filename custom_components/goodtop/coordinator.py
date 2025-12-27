@@ -29,6 +29,8 @@ class PortData:
     rx_good: int = 0
     rx_bad: int = 0
     poe_enabled: bool = False
+    speed_duplex: str = "0"  # 0=auto, 1=10HD, 2=10FD, 3=100HD, 4=100FD, 5=1000FD
+    flow_control: str = "0"  # 0=disabled, 1=enabled
 
 
 @dataclass
@@ -111,6 +113,8 @@ class GoodtopApiClient:
             await self._fetch_poe_system(session, data)
             # Get port stats
             await self._fetch_port_stats(session, data)
+            # Get port settings (speed/duplex, flow)
+            await self._fetch_port_settings(session, data)
             # Get PoE port states
             await self._fetch_poe_ports(session, data)
 
@@ -187,6 +191,40 @@ class GoodtopApiClient:
         except Exception as err:
             _LOGGER.debug("Error fetching port stats: %s", err)
 
+    async def _fetch_port_settings(
+        self, session: aiohttp.ClientSession, data: GoodtopData
+    ) -> None:
+        """Fetch port settings (speed/duplex, flow control)."""
+        try:
+            async with session.get(
+                f"{self.host}/port.cgi",
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as response:
+                if response.status == 200:
+                    html = await response.text()
+                    # Parse settings for each port from the form
+                    # Look for selected options in the speed_duplex and flow selects
+                    for port_id in data.ports:
+                        # Try to find speed_duplex value
+                        speed_match = re.search(
+                            rf'Port\s*{port_id}.*?speed_duplex.*?value="(\d+)"[^>]*selected',
+                            html,
+                            re.IGNORECASE | re.DOTALL,
+                        )
+                        if speed_match:
+                            data.ports[port_id].speed_duplex = speed_match.group(1)
+
+                        # Try to find flow control value
+                        flow_match = re.search(
+                            rf'Port\s*{port_id}.*?flow.*?value="(\d+)"[^>]*selected',
+                            html,
+                            re.IGNORECASE | re.DOTALL,
+                        )
+                        if flow_match:
+                            data.ports[port_id].flow_control = flow_match.group(1)
+        except Exception as err:
+            _LOGGER.debug("Error fetching port settings: %s", err)
+
     async def _fetch_poe_ports(
         self, session: aiohttp.ClientSession, data: GoodtopData
     ) -> None:
@@ -246,8 +284,14 @@ class GoodtopApiClient:
             _LOGGER.error("Error setting PoE for port %d: %s", port_id, err)
             return False
 
-    async def set_port_state(self, port_id: int, enabled: bool) -> bool:
-        """Set port enable/disable state."""
+    async def set_port_state(
+        self,
+        port_id: int,
+        enabled: bool,
+        speed_duplex: str = "0",
+        flow_control: str = "0",
+    ) -> bool:
+        """Set port enable/disable state, preserving speed/flow settings."""
         try:
             async with aiohttp.ClientSession(cookies={"admin": self._cookie}) as session:
                 # Login first to establish session
@@ -255,11 +299,13 @@ class GoodtopApiClient:
                 data = {
                     "portid": str(port_id),
                     "state": "1" if enabled else "0",
+                    "speed_duplex": speed_duplex,
+                    "flow": flow_control,
                     "submit": "+++Apply+++",
                     "cmd": "port",
                     "language": "EN",
                 }
-                _LOGGER.warning("set_port_state request: port=%d, state=%s", port_id, enabled)
+                _LOGGER.warning("set_port_state request: port=%d, data=%s", port_id, data)
                 async with session.post(
                     f"{self.host}/port.cgi",
                     data=data,

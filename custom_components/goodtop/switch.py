@@ -118,10 +118,20 @@ class GoodtopPortSwitch(GoodtopSwitchBase):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable port."""
-        if await self.coordinator.client.set_port_state(self._port_id, True):
+        port = self.coordinator.data.ports.get(self._port_id)
+        speed_duplex = port.speed_duplex if port else "0"
+        flow_control = port.flow_control if port else "0"
+        if await self.coordinator.client.set_port_state(
+            self._port_id, True, speed_duplex, flow_control
+        ):
             await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable port."""
-        if await self.coordinator.client.set_port_state(self._port_id, False):
+        port = self.coordinator.data.ports.get(self._port_id)
+        speed_duplex = port.speed_duplex if port else "0"
+        flow_control = port.flow_control if port else "0"
+        if await self.coordinator.client.set_port_state(
+            self._port_id, False, speed_duplex, flow_control
+        ):
             await self.coordinator.async_request_refresh()

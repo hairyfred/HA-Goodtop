@@ -35,6 +35,8 @@ async def async_setup_entry(
         entities.append(GoodtopPortTxBadSensor(coordinator, entry, port_id))
         entities.append(GoodtopPortRxGoodSensor(coordinator, entry, port_id))
         entities.append(GoodtopPortRxBadSensor(coordinator, entry, port_id))
+        entities.append(GoodtopPortSpeedDuplexSensor(coordinator, entry, port_id))
+        entities.append(GoodtopPortFlowControlSensor(coordinator, entry, port_id))
 
     async_add_entities(entities)
 
@@ -211,3 +213,65 @@ class GoodtopPortRxBadSensor(GoodtopPortSensorBase):
         """Return RX bad packet count."""
         port = self.coordinator.data.ports.get(self._port_id)
         return port.rx_bad if port else 0
+
+
+SPEED_DUPLEX_MAP = {
+    "0": "Auto",
+    "1": "10M Half",
+    "2": "10M Full",
+    "3": "100M Half",
+    "4": "100M Full",
+    "5": "1000M Full",
+}
+
+
+class GoodtopPortSpeedDuplexSensor(GoodtopPortSensorBase):
+    """Sensor for port speed/duplex setting."""
+
+    _attr_icon = "mdi:speedometer"
+    _attr_state_class = None  # Not a measurement
+
+    def __init__(
+        self,
+        coordinator: GoodtopCoordinator,
+        entry: GoodtopConfigEntry,
+        port_id: int,
+    ) -> None:
+        """Initialize the speed/duplex sensor."""
+        super().__init__(coordinator, entry, port_id)
+        self._attr_unique_id = f"{coordinator.data.mac_address}_port{port_id}_speed_duplex"
+        self._attr_name = "Speed/Duplex"
+
+    @property
+    def native_value(self) -> str:
+        """Return speed/duplex setting."""
+        port = self.coordinator.data.ports.get(self._port_id)
+        if port:
+            return SPEED_DUPLEX_MAP.get(port.speed_duplex, f"Unknown ({port.speed_duplex})")
+        return "Unknown"
+
+
+class GoodtopPortFlowControlSensor(GoodtopPortSensorBase):
+    """Sensor for port flow control setting."""
+
+    _attr_icon = "mdi:swap-horizontal"
+    _attr_state_class = None  # Not a measurement
+
+    def __init__(
+        self,
+        coordinator: GoodtopCoordinator,
+        entry: GoodtopConfigEntry,
+        port_id: int,
+    ) -> None:
+        """Initialize the flow control sensor."""
+        super().__init__(coordinator, entry, port_id)
+        self._attr_unique_id = f"{coordinator.data.mac_address}_port{port_id}_flow_control"
+        self._attr_name = "Flow Control"
+
+    @property
+    def native_value(self) -> str:
+        """Return flow control setting."""
+        port = self.coordinator.data.ports.get(self._port_id)
+        if port:
+            return "Enabled" if port.flow_control == "1" else "Disabled"
+        return "Unknown"
